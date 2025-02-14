@@ -20,9 +20,9 @@ projects:
     repo_locks:
       mode: on_apply
     custom_policy_check: false
-    # autoplan:
-    #   when_modified: ["*.tf", "../modules/**/*.tf", ".terraform.lock.hcl"]
-    #   enabled: true
+    autoplan:
+      when_modified: ["*.tf", "../modules/**/*.tf", ".terraform.lock.hcl"]
+      enabled: true
     plan_requirements: [approved]
     apply_requirements: [approved]
     import_requirements: []
