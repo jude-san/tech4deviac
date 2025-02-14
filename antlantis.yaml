@@ -11,7 +11,7 @@ abort_on_execution_order_fail: true
 projects:
   - name: tech4deviac
     branch: /jude-dev/
-    dir: ./main.tf
+    dir: .
     # workspace: default
     terraform_distribution: terraform
     terraform_version: v1.10.5
@@ -20,38 +20,38 @@ projects:
     repo_locks:
       mode: on_plan
     custom_policy_check: false
-    autoplan:
-      when_modified: ["*.tf", "../modules/**/*.tf", ".terraform.lock.hcl"]
-      enabled: true
-    plan_requirements: [approved, mergeable]
-    apply_requirements: [approved, mergeable]
+    # autoplan:
+    #   when_modified: ["*.tf", "../modules/**/*.tf", ".terraform.lock.hcl"]
+    #   enabled: true
+    plan_requirements: [mergeable]
+    apply_requirements: [mergeable]
     import_requirements: []
     silence_pr_comments: ["apply"]
-    execution_order_group: 0
-    depends_on:
-      - project-1
-    workflow: myworkflow
-workflows:
-  myworkflow:
-    plan:
-      steps:
-        - run: echo "Starting terraform plan on server"
-          output: show
-        - run:
-            command: terraform init
-            shell: sh
-            output: show
+    # execution_order_group: 0
+    # depends_on:
+    #   - project-1
+#     workflow: myworkflow
+# workflows:
+#   myworkflow:
+#     plan:
+#       steps:
+#         - run: echo "Starting terraform plan on server"
+#           output: show
+#         - run:
+#             command: terraform init
+#             shell: sh
+#             output: show
 
-            # extra_args: ["-lock", "false"]
-        - run: terraform plan
-          output: show
+#             # extra_args: ["-lock", "false"]
+#         - run: terraform plan
+#           output: show
 
-        - run:
-            terraform apply
+#         - run:
+#             terraform apply
 
-            # extra_args: ["-auto-approve"]
-            # output: show
-          output: show
+#             # extra_args: ["-auto-approve"]
+#             # output: show
+#           output: show
 # allowed_regexp_prefixes:
 # - dev/
 # - staging/
