@@ -1,8 +1,8 @@
 module "vpc" {
-  source             = "./modules/vpc"
-  cidr_block         = "10.0.0.0/16"
-  subnet_cidr_block  = "10.0.1.0/24"
-  availability_zone  = "us-east-1a"
+  source            = "./modules/vpc"
+  cidr_block        = "10.0.0.0/16"
+  subnet_cidr_block = "10.0.1.0/24"
+  availability_zone = "us-east-1a"
 }
 
 module "security_group" {
@@ -24,4 +24,11 @@ module "ec2" {
   subnet_id      = module.vpc.subnet_id
   sg_id          = module.security_group.sg_id
   iam_role       = module.iam.role_name
+}
+
+resource "null_resource" "example" {
+  provisioner "local-exec" {
+    command = "echo 'Hello, World!'"
+  }
+
 }
