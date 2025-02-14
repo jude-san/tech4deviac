@@ -3,15 +3,10 @@ terraform {
     ## ...
     aws = {
       version = "~> 5.53.0"
-      # region  = "eu-north-1"
-      # profile = tech4dev
+      source  = "hashicorp/aws"
     }
-    # random = {
-    #   version = "~> 3.6.2"
-    # }
-  }
 
-  # required_version = "~> 1.10.5"
+  }
 }
 
 
