@@ -20,38 +20,26 @@ projects:
     repo_locks:
       mode: on_plan
     custom_policy_check: false
-    # autoplan:
-    #   when_modified: ["*.tf", "../modules/**/*.tf", ".terraform.lock.hcl"]
-    #   enabled: true
-    plan_requirements: [mergeable]
+    autoplan:
+      when_modified: ["*.tf", "../modules/**/*.tf", ".terraform.lock.hcl"]
+      enabled: true
+    plan_requirements: []
     apply_requirements: [mergeable]
     import_requirements: []
     silence_pr_comments: ["apply"]
     execution_order_group: 0
-    depends_on:
-      - project-1
+    # depends_on:
+    #   - project-1
     workflow: myworkflow
 workflows:
   myworkflow:
     plan:
       steps:
-        - run: echo "Starting terraform plan on server"
-          output: show
-        - run:
-            command: terraform init
-            shell: sh
-            output: show
-
-            # extra_args: ["-lock", "false"]
-        - run: terraform plan
-          output: show
-
-        - run:
-            terraform apply
-
-            # extra_args: ["-auto-approve"]
-            # output: show
-          output: show
+        - init
+        - plan
+    apply:
+      steps:
+        - apply
 # allowed_regexp_prefixes:
 # - dev/
 # - staging/
