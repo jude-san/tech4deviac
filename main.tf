@@ -26,16 +26,3 @@ module "ec2" {
   iam_role       = module.iam.role_name
 }
 
-resource "null_resource" "example" {
-  provisioner "local-exec" {
-    command = "echo 'Hello, World!'"
-  }
-}
-
-resource "null_resource" "name" {
-  provisioner "local-exec" {
-    command = "echo 'Hello, World!'"
-  }
-}
-
-
