@@ -19,7 +19,7 @@ module "iam" {
 module "ec2" {
   source         = "./modules/ec2"
   ami            = "ami-07a64b147d3500b6a"
-  instance_type  = "t2.micro"
+  instance_type  = "t3.micro"
   instance_count = 3
   subnet_id      = module.vpc.subnet_id
   sg_id          = module.security_group.sg_id
