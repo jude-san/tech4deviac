@@ -12,3 +12,9 @@ resource "aws_iam_role" "ec2_role" {
     }]
   })
 }
+
+
+resource "aws_iam_instance_profile" "ec2_profile" {
+  name = "ec2_profile_ec2"
+  role = aws_iam_role.ec2_role.name
+}
