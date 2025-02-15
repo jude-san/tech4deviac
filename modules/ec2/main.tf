@@ -1,10 +1,10 @@
-resource "aws_instance" "web" {
-  count             = var.instance_count
-  ami               = var.ami
-  instance_type     = var.instance_type
-  subnet_id         = var.subnet_id
+resource "aws_instance" "web2" {
+  count                  = var.instance_count
+  ami                    = var.ami
+  instance_type          = var.instance_type
+  subnet_id              = var.subnet_id
   vpc_security_group_ids = [var.sg_id]
-  iam_instance_profile = var.iam_role
+  iam_instance_profile   = var.iam_role
 
   tags = {
     Name = "web-${count.index}"
