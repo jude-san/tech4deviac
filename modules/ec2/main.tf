@@ -1,5 +1,5 @@
 module "iam" {
-  source = "..modules/iam"
+  source = "../../modules/iam"
 }
 
 resource "aws_instance" "web" {
