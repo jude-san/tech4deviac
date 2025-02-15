@@ -26,3 +26,12 @@ module "ec2" {
   iam_role       = module.iam.role_name
 }
 
+module "ec2" {
+  source         = "./modules/ec2"
+  ami            = "ami-07a64b147d3500b6a"
+  instance_type  = "t3.micro"
+  instance_count = 1
+  subnet_id      = module.vpc.subnet_id
+  sg_id          = module.security_group.sg_id
+  iam_role       = module.iam.role_name
+}
