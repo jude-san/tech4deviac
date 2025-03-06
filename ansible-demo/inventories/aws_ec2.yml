@@ -3,7 +3,7 @@ regions:
   - us-east-1
 filters:
   instance-state-name: running
-  tag:Name: "david-0"
+  tag:Environment: "core-banking"
 keyed_groups:
   - key: tags.Role
     prefix: "aws"
