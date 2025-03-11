@@ -30,6 +30,12 @@ pipeline {
                 echo "Build completed"
             }
         }
+
+        stage('Post Deployment') {
+            steps {
+                echo "We are cleaning up"
+              }
+          }
     }
 
 }
