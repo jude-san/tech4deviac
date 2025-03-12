@@ -26,11 +26,11 @@ pipeline {
             parallel {
                 stage('Go Lint') {
                     steps {
-                        dir('backend-api') {
+                        dir('cicd/banking-app/backend-api') {
                             sh 'pwd'
                             sh 'ls -la'
-                            sh 'go fmt ./backend-api/...'
-                            sh 'go vet ./backend-api/...'
+                            sh 'go fmt ./...'
+                            sh 'go vet ./...'
                         }
                     }
                 }
