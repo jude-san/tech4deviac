@@ -80,33 +80,33 @@ pipeline {
             }
         }
         
-        // stage('Build Docker Images') {
-        //     parallel {
-        //         stage('Build API Image') {
-        //             steps {
-        //                 dir('backend-api') {
-        //                     sh 'docker build -t ${API_IMAGE}:${VERSION} -t ${API_IMAGE}:latest .'
-        //                 }
-        //             }
-        //         }
+        stage('Build Docker Images') {
+            parallel {
+                stage('Build API Image') {
+                    steps {
+                        dir('cicd/banking-app/backend-api') {
+                            sh 'docker build -t ${API_IMAGE}:${VERSION} -t ${API_IMAGE}:latest .'
+                        }
+                    }
+                }
                 
-        //         stage('Build Processor Image') {
-        //             steps {
-        //                 dir('transaction-service') {
-        //                     sh 'docker build -t ${PROCESSOR_IMAGE}:${VERSION} -t ${PROCESSOR_IMAGE}:latest .'
-        //                 }
-        //             }
-        //         }
+                stage('Build Processor Image') {
+                    steps {
+                        dir('cicd/banking-app/transaction-service') {
+                            sh 'docker build -t ${PROCESSOR_IMAGE}:${VERSION} -t ${PROCESSOR_IMAGE}:latest .'
+                        }
+                    }
+                }
                 
-        //         stage('Build Frontend Image') {
-        //             steps {
-        //                 dir('frontend') {
-        //                     sh 'docker build -t ${FRONTEND_IMAGE}:${VERSION} -t ${FRONTEND_IMAGE}:latest .'
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+                stage('Build Frontend Image') {
+                    steps {
+                        dir('cicd/banking-app/frontend') {
+                            sh 'docker build -t ${FRONTEND_IMAGE}:${VERSION} -t ${FRONTEND_IMAGE}:latest .'
+                        }
+                    }
+                }
+            }
+        }
         
         // stage('Integration Test') {
         //     steps {
