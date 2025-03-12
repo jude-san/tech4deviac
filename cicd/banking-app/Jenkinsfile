@@ -27,8 +27,8 @@ pipeline {
                 stage('Go Lint') {
                     steps {
                         dir('backend-api') {
-                            sh 'go fmt ./...'
-                            sh 'go vet ./...'
+                            sh 'go fmt ./backend-api/...'
+                            sh 'go vet ./backend-api/...'
                         }
                     }
                 }
