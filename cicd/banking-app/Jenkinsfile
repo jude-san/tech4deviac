@@ -37,7 +37,7 @@ pipeline {
                     steps {
                         dir('cicd/banking-app/transaction-service') {
                             sh 'python3 -m venv .venv'
-                            sh 'source venv/bin/activate'
+                            sh 'source .venv/bin/activate'
                             sh 'pip install flake8'
                             sh 'flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics'
                         }
