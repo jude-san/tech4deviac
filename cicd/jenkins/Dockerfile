@@ -49,8 +49,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# RUN usermod -aG docker jenkins
-
 RUN chown -R jenkins:jenkins /opt/python-tools
 
 USER jenkins
