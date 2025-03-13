@@ -4,7 +4,7 @@ pipeline {
     environment {
         // DockerHub credentials and repository info
         DOCKER_HUB_CREDS = credentials('dockerhub-credentials')
-        DOCKER_HUB_REPO = 'davidogbiko'  // Replace with your DockerHub username
+        DOCKER_HUB_REPO = 'david930'  // Replace with your DockerHub username
         
         // Image names and tags
         API_IMAGE = "${DOCKER_HUB_REPO}/banking-api"
