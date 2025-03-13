@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         // DockerHub credentials and repository info
-        DOCKER_HUB_cred = credentials('dockerhub-credentials')
+        DOCKER_HUB_CREDS = credentials('dockerhub-credentials')
         DOCKER_HUB_REPO = 'davidogbiko'  // Replace with your DockerHub username
         
         // Image names and tags
@@ -102,50 +102,22 @@ pipeline {
             }
         }
         
-        // stage('Integration Test') {
-        //     steps {
-        //         // Create a test network
-        //         sh 'docker network create banking-test-network || true'
+        stage('Push Images to DockerHub') {
+            steps {
+                // Login to DockerHub
+                sh 'echo ${DOCKER_HUB_CREDS_PSW} | docker login -u ${DOCKER_HUB_CREDS_USR} --password-stdin'
                 
-        //         // Start containers
-        //         sh '''
-        //         docker run -d --name api-test --network banking-test-network ${API_IMAGE}:${VERSION}
-        //         docker run -d --name processor-test --network banking-test-network -e API_HOST=api-test ${PROCESSOR_IMAGE}:${VERSION}
-        //         '''
-                
-        //         // Run integration tests (wait for services to be ready)
-        //         sh 'sleep 10'
-        //         sh '''
-        //         # Simple health check test
-        //         curl -f http://api-test:8080/health || exit 1
-        //         curl -f http://processor-test:5000/health || exit 1
-        //         '''
-                
-        //         // Clean up test containers
-        //         sh '''
-        //         docker stop api-test processor-test
-        //         docker rm api-test processor-test
-        //         docker network rm banking-test-network
-        //         '''
-        //     }
-        // }
-        
-        // stage('Push Images to DockerHub') {
-        //     steps {
-        //         // Login to DockerHub
-        //         sh 'echo ${DOCKER_HUB_CREDS_PSW} | docker login -u ${DOCKER_HUB_CREDS_USR} --password-stdin'
-                
-        //         // Push all images
-        //         sh '''
-        //         docker push ${API_IMAGE}:${VERSION}
-        //         docker push ${API_IMAGE}:latest
-        //         docker push ${PROCESSOR_IMAGE}:${VERSION}
-        //         docker push ${PROCESSOR_IMAGE}:latest
-        //         docker push ${FRONTEND_IMAGE}:${VERSION}
-        //         docker push ${FRONTEND_IMAGE}:latest
-        //         '''
-        //     }
-        // }
+                // Push all images
+                sh '''
+                docker push ${API_IMAGE}:${VERSION}
+                docker push ${API_IMAGE}:latest
+                docker push ${PROCESSOR_IMAGE}:${VERSION}
+                docker push ${PROCESSOR_IMAGE}:latest
+                docker push ${FRONTEND_IMAGE}:${VERSION}
+                docker push ${FRONTEND_IMAGE}:latest
+                '''
+            }
+        }
         
         // stage('Deploy to Dev Environment') {
         //     when {
@@ -236,18 +208,18 @@ pipeline {
         // }
     }
     
-    // post {
-    //     always {
-    //         // Clean up local Docker images
-    //         sh '''
-    //         docker rmi ${API_IMAGE}:${VERSION} ${API_IMAGE}:latest || true
-    //         docker rmi ${PROCESSOR_IMAGE}:${VERSION} ${PROCESSOR_IMAGE}:latest || true
-    //         docker rmi ${FRONTEND_IMAGE}:${VERSION} ${FRONTEND_IMAGE}:latest || true
-    //         '''
+    post {
+        always {
+            // Clean up local Docker images
+            sh '''
+            docker rmi ${API_IMAGE}:${VERSION} ${API_IMAGE}:latest || true
+            docker rmi ${PROCESSOR_IMAGE}:${VERSION} ${PROCESSOR_IMAGE}:latest || true
+            docker rmi ${FRONTEND_IMAGE}:${VERSION} ${FRONTEND_IMAGE}:latest || true
+            '''
             
-    //         // Logout from DockerHub
-    //         sh 'docker logout'
-    //     }
+            // Logout from DockerHub
+            sh 'docker logout'
+        }
         
     //     success {
     //         echo 'Pipeline completed successfully!'
