@@ -116,6 +116,7 @@ pipeline {
                 docker push ${FRONTEND_IMAGE}:${VERSION}
                 docker push ${FRONTEND_IMAGE}:latest
                 '''
+                echo 'Images pushed to DockerHub!'
             }
         }
         
