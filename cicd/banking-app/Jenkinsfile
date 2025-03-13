@@ -221,24 +221,24 @@ pipeline {
             sh 'docker logout'
         }
         
-    //     success {
-    //         echo 'Pipeline completed successfully!'
-    //         // Send notifications on success
-    //         emailext (
-    //             subject: "Build Successful: ${currentBuild.fullDisplayName}",
-    //             body: "The build was successful. Check the results at: ${env.BUILD_URL}",
-    //             recipientProviders: [developers(), requestor()]
-    //         )
-    //     }
+        // success {
+        //     echo 'Pipeline completed successfully!'
+        //     // Send notifications on success
+        //     emailext (
+        //         subject: "Build Successful: ${currentBuild.fullDisplayName}",
+        //         body: "The build was successful. Check the results at: ${env.BUILD_URL}",
+        //         recipientProviders: [developers(), requestor()]
+        //     )
+        // }
         
-    //     failure {
-    //         echo 'Pipeline failed!'
-    //         // Send notifications on failure
-    //         emailext (
-    //             subject: "Build Failed: ${currentBuild.fullDisplayName}",
-    //             body: "The build failed. Check the results at: ${env.BUILD_URL}",
-    //             recipientProviders: [developers(), requestor()]
-    //         )
-    //     }
-    // }
+        // failure {
+        //     echo 'Pipeline failed!'
+        //     // Send notifications on failure
+        //     emailext (
+        //         subject: "Build Failed: ${currentBuild.fullDisplayName}",
+        //         body: "The build failed. Check the results at: ${env.BUILD_URL}",
+        //         recipientProviders: [developers(), requestor()]
+        //     )
+        // }
+    }
 }
