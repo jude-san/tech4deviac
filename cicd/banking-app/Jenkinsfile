@@ -25,6 +25,11 @@ pipeline {
         stage('Lint and Format Check') {
             parallel {
                 stage('Go Lint') {
+                    agent {
+                        docker {
+                            image 'golang:1.22'
+                        }
+                    }
                     steps {
                         dir('cicd/banking-app/backend-api') {
                             sh 'go fmt ./...'
@@ -34,6 +39,11 @@ pipeline {
                 }
                 
                 stage('Python Lint') {
+                    agent {
+                        docker {
+                            image 'python:3.12'
+                        }
+                    }
                     steps {
                         dir('cicd/banking-app/transaction-service') {
                             echo 'Running flake8...'
@@ -43,6 +53,11 @@ pipeline {
                 }
                 
                 stage('JavaScript Lint') {
+                    agent {
+                        docker {
+                            image 'node:22'
+                        }
+                    }
                     steps {
                         dir('cicd/banking-app/frontend') {
                             sh 'npm install eslint'
@@ -56,6 +71,11 @@ pipeline {
         stage('Test') {
             parallel {
                 stage('Go Tests') {
+                    agent {
+                        docker {
+                            image 'golang:1.22'
+                        }
+                    }
                     steps {
                         dir('cicd/banking-app/backend-api') {
                             sh 'go test ./... -v'
@@ -64,6 +84,11 @@ pipeline {
                 }
                 
                 stage('Python Tests') {
+                    agent {
+                        docker {
+                            image 'python:3.12'
+                        }
+                    }
                     steps {
                         dir('cicd/banking-app/transaction-service') {
                             echo 'Running pytest...'
@@ -119,94 +144,6 @@ pipeline {
                 echo 'Images pushed to DockerHub!'
             }
         }
-        
-        // stage('Deploy to Dev Environment') {
-        //     when {
-        //         branch 'develop'
-        //     }
-        //     steps {
-        //         echo 'Deploying to development environment...'
-                
-        //         // Example deployment using docker-compose
-        //         sh '''
-        //         echo "version: '3'
-        //         services:
-        //           api:
-        //             image: ${API_IMAGE}:${VERSION}
-        //             ports:
-        //               - 8080:8080
-        //           processor:
-        //             image: ${PROCESSOR_IMAGE}:${VERSION}
-        //             environment:
-        //               - API_HOST=api
-        //             ports:
-        //               - 5000:5000
-        //             depends_on:
-        //               - api
-        //           frontend:
-        //             image: ${FRONTEND_IMAGE}:${VERSION}
-        //             ports:
-        //               - 80:80
-        //             depends_on:
-        //               - api
-        //               - processor
-        //         " > docker-compose.yml
-                
-        //         ssh dev-server 'mkdir -p /opt/banking-app/${VERSION}'
-        //         scp docker-compose.yml dev-server:/opt/banking-app/${VERSION}/
-        //         ssh dev-server 'cd /opt/banking-app/${VERSION} && docker-compose up -d'
-        //         '''
-        //     }
-        // }
-        
-        // stage('Deploy to Production') {
-        //     when {
-        //         branch 'main'
-        //     }
-        //     input {
-        //         message "Deploy to production?"
-        //         ok "Yes, deploy to production"
-        //     }
-        //     steps {
-        //         echo 'Deploying to production environment...'
-                
-        //         // Example deployment using docker-compose
-        //         sh '''
-        //         echo "version: '3'
-        //         services:
-        //           api:
-        //             image: ${API_IMAGE}:${VERSION}
-        //             ports:
-        //               - 8080:8080
-        //             deploy:
-        //               replicas: 3
-        //           processor:
-        //             image: ${PROCESSOR_IMAGE}:${VERSION}
-        //             environment:
-        //               - API_HOST=api
-        //             ports:
-        //               - 5000:5000
-        //             deploy:
-        //               replicas: 2
-        //             depends_on:
-        //               - api
-        //           frontend:
-        //             image: ${FRONTEND_IMAGE}:${VERSION}
-        //             ports:
-        //               - 80:80
-        //             deploy:
-        //               replicas: 2
-        //             depends_on:
-        //               - api
-        //               - processor
-        //         " > docker-compose.prod.yml
-                
-        //         ssh prod-server 'mkdir -p /opt/banking-app/${VERSION}'
-        //         scp docker-compose.prod.yml prod-server:/opt/banking-app/${VERSION}/docker-compose.yml
-        //         ssh prod-server 'cd /opt/banking-app/${VERSION} && docker-compose up -d'
-        //         '''
-        //     }
-        // }
     }
     
     post {
