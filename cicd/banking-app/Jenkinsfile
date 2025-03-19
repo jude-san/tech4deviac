@@ -94,6 +94,8 @@ pipeline {
                     steps {
                         dir('cicd/banking-app/transaction-service') {
                             echo 'Running pytest...'
+                            sh 'python -m venv /opt/python-tools'
+                            sh '/opt/python-tools/bin/pip install pytest'
                             sh '/opt/python-tools/bin/pytest'
                         }
                     }
