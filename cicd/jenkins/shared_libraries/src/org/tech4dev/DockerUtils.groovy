@@ -2,9 +2,8 @@ package org.tech4dev
 
 class DockerUtils implements Serializable {
     void cleanupDockerResources(String imageName, List<String> tags) {
-        def docker = new Docker()
         tags.each { tag ->
-            docker.image("${imageName}:${tag}").remove()
+            sh "docker rmi ${imageName}:${tag} || true"
         }
     }
 
