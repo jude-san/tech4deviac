@@ -6,3 +6,4 @@ venv
 volume
 values.yaml
 *.pem
+jenkins_home
