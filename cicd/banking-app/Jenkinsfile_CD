@@ -67,17 +67,20 @@ pipeline {
 
                     '''
                 }
-            }
+        }
         stage('Deploying .....') {
                 steps {
                     sshagent(['ec2-key']) {
                         sh '''
-                    [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 600 ~/.ssh
-                    ssh-keyscan -t rsa,dsa 3.93.10.172 >> ~/.ssh/known_hosts
-                    ssh -i ${DEV_SERVER} 'docker-compose -f docker-compose.staging.yml up -d'
-                    '''
+                        # Ensure the private key file has the correct permissions
+                        chmod 600 $SSH_AUTH_SOCK
+
+                        [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0600 ~/.ssh
+                        ssh-keyscan -t rsa,dsa 3.93.10.172 >> ~/.ssh/known_hosts
+                        ssh -i ${DEV_SERVER} 'docker-compose -f docker-compose.staging.yml up -d'
+                        '''
                     }
                 }
-            }
+        }
     }
 }
