@@ -72,7 +72,7 @@ pipeline {
                 steps {
                         sh '''
                         # Write the private key to a temporary file
-                        echo "${SSH_KEY}" > /tmp/private_key.pem
+                        echo "${SSH_KEY}" | sed 's/\\n/\\n/g' > /tmp/private_key.pem
                         chmod 600 /tmp/private_key.pem
 
                         [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0755 ~/.ssh
