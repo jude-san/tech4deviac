@@ -170,7 +170,7 @@ pipeline {
                 branch 'jude-dev'
             }
             steps {
-                echo 'Deploying to staging environment...'
+                echo 'Deploying to staging environment ...'
                 
                 // Example deployment using docker-compose
                 sh '''
