@@ -1,33 +1,33 @@
 pipeline {
     agent any
-    
+
     environment {
         // DockerHub credentials and repository info
         DOCKER_HUB_CREDS = credentials('dockerhub-credentials')
         DOCKER_HUB_REPO = 'judekhay'  // Replace with your DockerHub username
-        
+
         // Image names and tags
         API_IMAGE = "${DOCKER_HUB_REPO}/banking-api"
         PROCESSOR_IMAGE = "${DOCKER_HUB_REPO}/banking-processor"
         FRONTEND_IMAGE = "${DOCKER_HUB_REPO}/banking-frontend"
-        
+
         // Version tag based on build number
         VERSION = "v1.0.${BUILD_NUMBER}"
-        
+
         // Dev server SSH details
 
         SSH_KEY = credentials('dev-server-ssh-key')
 
-        DEV_SERVER = "ubuntu@3.93.10.172"
+        DEV_SERVER = 'ubuntu@3.93.10.172'
     }
-    
+
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
-        
+
         stage('Lint and Format Check') {
             parallel {
                 stage('Go Lint') {
@@ -38,7 +38,7 @@ pipeline {
                         }
                     }
                 }
-                
+
                 stage('Python Lint') {
                     steps {
                         dir('cicd/banking-app/transaction-service') {
@@ -47,7 +47,7 @@ pipeline {
                         }
                     }
                 }
-                
+
                 stage('JavaScript Lint') {
                     steps {
                         dir('cicd/banking-app/frontend') {
@@ -58,7 +58,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Test') {
             parallel {
                 stage('Go Tests') {
@@ -68,7 +68,7 @@ pipeline {
                         }
                     }
                 }
-                
+
                 stage('Python Tests') {
                     steps {
                         dir('cicd/banking-app/transaction-service') {
@@ -79,7 +79,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Build Docker Images') {
             parallel {
                 stage('Build API Image') {
@@ -89,7 +89,7 @@ pipeline {
                         }
                     }
                 }
-                
+
                 stage('Build Processor Image') {
                     steps {
                         dir('cicd/banking-app/transaction-service') {
@@ -97,7 +97,7 @@ pipeline {
                         }
                     }
                 }
-                
+
                 stage('Build Frontend Image') {
                     steps {
                         dir('cicd/banking-app/frontend') {
@@ -107,12 +107,12 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Push Images to DockerHub') {
             steps {
                 // Login to DockerHub
                 sh 'echo ${DOCKER_HUB_CREDS_PSW} | docker login -u ${DOCKER_HUB_CREDS_USR} --password-stdin'
-                
+
                 // Push all images
                 sh '''
                 docker push ${API_IMAGE}:${VERSION}
@@ -125,14 +125,14 @@ pipeline {
                 echo 'Images pushed to DockerHub!'
             }
         }
-        
+
         // stage('Deploy to Dev Environment') {
         //     when {
         //         branch 'develop'
         //     }
         //     steps {
         //         echo 'Deploying to development environment...'
-                
+
         //         // Example deployment using docker-compose
         //         sh '''
         //         echo "version: '3'
@@ -157,7 +157,7 @@ pipeline {
         //               - api
         //               - processor
         //         " > docker-compose.yml
-                
+
         //         ssh DEV_SERVER 'mkdir -p /opt/banking-app/${VERSION}'
         //         scp docker-compose.yml DEV_SERVER:/opt/banking-app/${VERSION}/
         //         ssh DEV_SERVER 'cd /opt/banking-app/${VERSION} && docker-compose up -d'
@@ -165,62 +165,62 @@ pipeline {
         //     }
         // }
 
-        stage('Deploy to Dev environment') {
-            when {
-                branch 'jude-dev'
-            }
-            steps {
-                echo 'Deploying to staging environment ...'
-                
-                // Example deployment using docker-compose
-                sh '''
-                echo "version: '3'
-                services:
-                  api:
-                    image: ${API_IMAGE}:${VERSION}
-                    ports:
-                      - 8080:8080
-                  processor:
-                    image: ${PROCESSOR_IMAGE}:${VERSION}
-                    environment:
-                      - API_HOST=api
-                    ports:
-                      - 5000:5000
-                    depends_on:
-                      - api
-                  frontend:
-                    image: ${FRONTEND_IMAGE}:${VERSION}
-                    ports:
-                      - 80:80
-                    depends_on:
-                      - api
-                      - processor
-                " > docker-compose.staging.yml
+        // stage('Deploy to Dev environment') {
+        //     when {
+        //         branch 'jude-dev'
+        //     }
+        //     steps {
+        //         echo 'Deploying to staging environment ...'
 
-                echo "sudo apt-get update
-                sudo apt-get install ca-certificates curl
-                sudo install -m 0755 -d /etc/apt/keyrings
-                sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-                sudo chmod a+r /etc/apt/keyrings/docker.asc
+        //         // Example deployment using docker-compose
+        //         sh '''
+        //         echo "version: '3'
+        //         services:
+        //           api:
+        //             image: ${API_IMAGE}:${VERSION}
+        //             ports:
+        //               - 8080:8080
+        //           processor:
+        //             image: ${PROCESSOR_IMAGE}:${VERSION}
+        //             environment:
+        //               - API_HOST=api
+        //             ports:
+        //               - 5000:5000
+        //             depends_on:
+        //               - api
+        //           frontend:
+        //             image: ${FRONTEND_IMAGE}:${VERSION}
+        //             ports:
+        //               - 80:80
+        //             depends_on:
+        //               - api
+        //               - processor
+        //         " > docker-compose.staging.yml
 
-                # Add the repository to Apt sources:
-                echo \
-                "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-                $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
-                sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-                sudo apt-get update
-                sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-                " > install-docker.sh
-                
-                ssh -i ${SSH_KEY} DEV_SERVER 'mkdir -p /opt/banking-app/${VERSION}'
-                scp -i ${SSH_KEY} docker-compose.staging.yml DEV_SERVER:/opt/banking-app/${VERSION}/docker-compose.yml
-                scp -i ${SSH_KEY} install-docker.sh DEV_SERVER:/opt/banking-app/${VERSION}/install-docker.sh
-                ssh -i ${SSH_KEY} DEV_SERVER 'cd /opt/banking-app/${VERSION} && chmod +x install-docker.sh && ./install-docker.sh'
-                ssh -i ${SSH_KEY} DEV_SERVER 'cd /opt/banking-app/${VERSION} && docker-compose up -d'
-                '''
-            }
-        }
-        
+        //         echo "sudo apt-get update
+        //         sudo apt-get install ca-certificates curl
+        //         sudo install -m 0755 -d /etc/apt/keyrings
+        //         sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        //         sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+        //         # Add the repository to Apt sources:
+        //         echo \
+        //         "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+        //         $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+        //         sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        //         sudo apt-get update
+        //         sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        //         " > install-docker.sh
+
+        //         ssh -i ${SSH_KEY} DEV_SERVER 'mkdir -p /opt/banking-app/${VERSION}'
+        //         scp -i ${SSH_KEY} docker-compose.staging.yml DEV_SERVER:/opt/banking-app/${VERSION}/docker-compose.yml
+        //         scp -i ${SSH_KEY} install-docker.sh DEV_SERVER:/opt/banking-app/${VERSION}/install-docker.sh
+        //         ssh -i ${SSH_KEY} DEV_SERVER 'cd /opt/banking-app/${VERSION} && chmod +x install-docker.sh && ./install-docker.sh'
+        //         ssh -i ${SSH_KEY} DEV_SERVER 'cd /opt/banking-app/${VERSION} && docker-compose up -d'
+        //         '''
+        //     }
+        // }
+
         // stage('Deploy to Production') {
         //     when {
         //         branch 'main'
@@ -231,7 +231,7 @@ pipeline {
         //     }
         //     steps {
         //         echo 'Deploying to production environment...'
-                
+
         //         // Example deployment using docker-compose
         //         sh '''
         //         echo "version: '3'
@@ -262,15 +262,15 @@ pipeline {
         //               - api
         //               - processor
         //         " > docker-compose.prod.yml
-                
-        //         ssh prod-server 'mkdir -p /opt/banking-app/${VERSION}'
-        //         scp docker-compose.prod.yml prod-server:/opt/banking-app/${VERSION}/docker-compose.yml
-        //         ssh prod-server 'cd /opt/banking-app/${VERSION} && docker-compose up -d'
-        //         '''
-        //     }
-        // }
+
+    //         ssh prod-server 'mkdir -p /opt/banking-app/${VERSION}'
+    //         scp docker-compose.prod.yml prod-server:/opt/banking-app/${VERSION}/docker-compose.yml
+    //         ssh prod-server 'cd /opt/banking-app/${VERSION} && docker-compose up -d'
+    //         '''
+    //     }
+    // }
     }
-    
+
     post {
         always {
             // Clean up local Docker images
@@ -279,11 +279,11 @@ pipeline {
             docker rmi ${PROCESSOR_IMAGE}:${VERSION} ${PROCESSOR_IMAGE}:latest || true
             docker rmi ${FRONTEND_IMAGE}:${VERSION} ${FRONTEND_IMAGE}:latest || true
             '''
-            
+
             // Logout from DockerHub
             sh 'docker logout'
         }
-        
+
         // success {
         //     echo 'Pipeline completed successfully!'
         //     // Send notifications on success
@@ -293,15 +293,15 @@ pipeline {
         //         recipientProviders: [developers(), requestor()]
         //     )
         // }
-        
-        // failure {
-        //     echo 'Pipeline failed!'
-        //     // Send notifications on failure
-        //     emailext (
-        //         subject: "Build Failed: ${currentBuild.fullDisplayName}",
-        //         body: "The build failed. Check the results at: ${env.BUILD_URL}",
-        //         recipientProviders: [developers(), requestor()]
-        //     )
-        // }
+
+    // failure {
+    //     echo 'Pipeline failed!'
+    //     // Send notifications on failure
+    //     emailext (
+    //         subject: "Build Failed: ${currentBuild.fullDisplayName}",
+    //         body: "The build failed. Check the results at: ${env.BUILD_URL}",
+    //         recipientProviders: [developers(), requestor()]
+    //     )
+    // }
     }
 }
