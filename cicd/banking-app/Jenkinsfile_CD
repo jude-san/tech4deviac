@@ -70,7 +70,7 @@ pipeline {
         }
         stage('Deploying .....') {
                 steps {
-                    sshagent(['ec2-key']) {
+                    sshagent(credentials: ['ec2-key']) {
                         sh '''
                         # Ensure the private key file has the correct permissions
                         chmod 0600 /var/jenkins_home/workspace/bankingCD@tmp/private_key_*.key
