@@ -27,28 +27,28 @@ pipeline {
                     echo 'Deploying to staging environment ...'
                     // Example deployment using docker-compose
                     sh '''
-                    echo "version: '3'
-                    services:
-                    api:
-                        image: ${API_IMAGE}:${VERSION}
-                        ports:
-                        - 8080:8080
-                    processor:
-                        image: ${PROCESSOR_IMAGE}:${VERSION}
-                        environment:
-                        - API_HOST=api
-                        ports:
-                        - 5000:5000
-                        depends_on:
-                        - api
-                    frontend:
-                        image: ${FRONTEND_IMAGE}:${VERSION}
-                        ports:
-                        - 80:80
-                        depends_on:
-                        - api
-                        - processor
-                    " > docker-compose.staging.yml
+                    cat << 'EOF' > docker-compose.staging.yml
+services:
+  api:
+    image: judekhay/banking-api:v1.0.35
+    ports:
+      - 8080:8080
+  processor:
+    image: judekhay/banking-processor:v1.0.35
+    environment:
+      - API_HOST=api
+    ports:
+      - 5000:5000
+    depends_on:
+      - api
+  frontend:
+    image: judekhay/banking-frontend:v1.0.35
+    ports:
+      - 80:80
+    depends_on:
+      - api
+      - processor
+EOF
                     '''
                 }
         }
@@ -62,7 +62,14 @@ pipeline {
                         [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0755 ~/.ssh
                         ssh-keyscan -t rsa,dsa 3.93.10.172 >> ~/.ssh/known_hosts
 
-                        ssh -i /tmp/private_key.pem ${DEV_SERVER} 'docker compose -f docker-compose.staging.yml up -d'
+                        ssh -i /tmp/private_key.pem ${DEV_SERVER} 'mkdir -p /home/ubuntu/bankingApp'
+
+                        scp -i /tmp/private_key.pem docker-compose.staging.yml ${DEV_SERVER}:/home/ubuntu/bankingApp
+
+                        ssh -i /tmp/private_key.pem ${DEV_SERVER} 'cat /home/ubuntu/bankingApp/docker-compose.staging.yml'
+
+                        ssh -i /tmp/private_key.pem ${DEV_SERVER} 'cd /home/ubuntu/bankingApp && sudo docker compose -f docker-compose.staging.yml up -d'
+
                         '''
                 }
         }
