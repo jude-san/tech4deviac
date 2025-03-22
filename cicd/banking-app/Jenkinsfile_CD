@@ -71,10 +71,13 @@ pipeline {
         stage('Deploying .....') {
                 steps {
                         sh '''
+                        # Write the private key to a temporary file
+                        echo "${SSH_KEY}" > /tmp/private_key.pem
+                        chmod 600 /tmp/private_key.pem
 
                         [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0755 ~/.ssh
                         ssh-keyscan -t rsa,dsa 3.93.10.172 >> ~/.ssh/known_hosts
-                        ssh -i ${SSH_KEY} ${DEV_SERVER} 'docker-compose -f docker-compose.staging.yml up -d'
+                        ssh -i /tmp/private_key.pem ${DEV_SERVER} 'docker-compose -f docker-compose.staging.yml up -d'
                         '''
                 }
         }
