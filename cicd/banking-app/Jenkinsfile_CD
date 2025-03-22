@@ -66,6 +66,7 @@ pipeline {
                     " > install-docker.sh
 
                     ssh-keyscan -H 3.93.10.172 >> ~/.ssh/known_hosts
+                    chmod 600 ${SSH_KEY}
                     ssh -i ${SSH_KEY} ${DEV_SERVER} 'mkdir -p /opt/banking-app/${VERSION}'
                     scp -i ${SSH_KEY} docker-compose.staging.yml ${DEV_SERVER}:/opt/banking-app/${VERSION}/docker-compose.yml
                     scp -i ${SSH_KEY} install-docker.sh ${DEV_SERVER}:/opt/banking-app/${VERSION}/install-docker.sh
