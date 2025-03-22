@@ -62,9 +62,7 @@ pipeline {
                         [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0755 ~/.ssh
                         ssh-keyscan -t rsa,dsa 3.93.10.172 >> ~/.ssh/known_hosts
 
-
-
-                        ssh -i /tmp/private_key.pem ${DEV_SERVER} 'docker-compose -f docker-compose.staging.yml up -d'
+                        ssh -i /tmp/private_key.pem ${DEV_SERVER} 'docker compose -f docker-compose.staging.yml up -d'
                         '''
                 }
         }
