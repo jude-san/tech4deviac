@@ -27,28 +27,29 @@ pipeline {
                     echo 'Deploying to staging environment ...'
                     // Example deployment using docker-compose
                     sh '''
-                    echo "version: '3'
-                    services:
-                    api:
-                        image: ${API_IMAGE}:${VERSION}
-                        ports:
-                        - 8080:8080
-                    processor:
-                        image: ${PROCESSOR_IMAGE}:${VERSION}
-                        environment:
-                        - API_HOST=api
-                        ports:
-                        - 5000:5000
-                        depends_on:
-                        - api
-                    frontend:
-                        image: ${FRONTEND_IMAGE}:${VERSION}
-                        ports:
-                        - 80:80
-                        depends_on:
-                        - api
-                        - processor
-                    " > docker-compose.staging.yml
+                    cat << 'EOF' > docker-compose.staging.yml
+version: '3'
+services:
+  api:
+    image: judekhay/banking-api:v1.0.35
+    ports:
+      - 8080:8080
+  processor:
+    image: judekhay/banking-processor:v1.0.35
+    environment:
+      - API_HOST=api
+    ports:
+      - 5000:5000
+    depends_on:
+      - api
+  frontend:
+    image: judekhay/banking-frontend:v1.0.35
+    ports:
+      - 80:80
+    depends_on:
+      - api
+      - processor
+EOF
                     '''
                 }
         }
