@@ -16,13 +16,13 @@ pipeline {
 
         // Dev server SSH details
 
-        SSH_KEY = credentials('dev-server-ssh-key')
+        SSH_KEY = credentials('ec2-key')
 
         DEV_SERVER = 'ubuntu@3.93.10.172'
     }
 
     stages {
-        stage('Deploy to Dev environment') {
+        stage('Preparing deployments to Dev environment') {
                 steps {
                     echo 'Deploying to staging environment ...'
                     // Example deployment using docker-compose
@@ -65,13 +65,20 @@ pipeline {
                     sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
                     " > install-docker.sh
 
-                    ssh-keyscan -H 3.93.10.172 >> ~/.ssh/known_hosts
-                    ssh -i ${SSH_KEY} ${DEV_SERVER} 'mkdir -p /opt/banking-app/${VERSION}'
-                    scp -i ${SSH_KEY} docker-compose.staging.yml ${DEV_SERVER}:/opt/banking-app/${VERSION}/docker-compose.yml
-                    scp -i ${SSH_KEY} install-docker.sh ${DEV_SERVER}:/opt/banking-app/${VERSION}/install-docker.sh
-                    ssh -i ${SSH_KEY} ${DEV_SERVER} 'cd /opt/banking-app/${VERSION} && chmod +x install-docker.sh && ./install-docker.sh'
-                    ssh -i ${SSH_KEY} ${DEV_SERVER} 'cd /opt/banking-app/${VERSION} && docker-compose up -d'
                     '''
+                }
+        }
+        stage('Deploying .....') {
+                steps {
+                        sh '''
+                        # Write the private key to a temporary file
+                        echo "${SSH_KEY}" | sed 's/\\n/\\n/g' > /tmp/private_key.pem
+                        chmod 600 /tmp/private_key.pem
+
+                        [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0755 ~/.ssh
+                        ssh-keyscan -t rsa,dsa 3.93.10.172 >> ~/.ssh/known_hosts
+                        ssh -i /tmp/private_key.pem ${DEV_SERVER} 'docker-compose -f docker-compose.staging.yml up -d'
+                        '''
                 }
         }
     }
