@@ -22,7 +22,7 @@ pipeline {
     }
 
     stages {
-        stage('Deploy to Dev environment') {
+        stage('Preparing deployments to Dev environment') {
                 steps {
                     echo 'Deploying to staging environment ...'
                     // Example deployment using docker-compose
@@ -65,16 +65,19 @@ pipeline {
                     sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
                     " > install-docker.sh
 
-                    ssh-keyscan -H 3.93.10.172 >> ~/.ssh/known_hosts
-                    echo "${SSH_KEY}" | sed 's/\\n/\\n/g'  > /tmp/private_key
-                    chmod 600 /tmp/private_key
-                    ssh -i /tmp/private_key ${DEV_SERVER} 'mkdir -p /opt/banking-app/${VERSION}'
-                    scp -i /tmp/private_key docker-compose.staging.yml ${DEV_SERVER}:/opt/banking-app/${VERSION}/docker-compose.yml
-                    scp -i /tmp/private_key install-docker.sh ${DEV_SERVER}:/opt/banking-app/${VERSION}/install-docker.sh
-                    ssh -i /tmp/private_key ${DEV_SERVER} 'cd /opt/banking-app/${VERSION} && chmod +x install-docker.sh && ./install-docker.sh'
-                    ssh -i /tmp/private_key ${DEV_SERVER} 'cd /opt/banking-app/${VERSION} && docker-compose up -d'
                     '''
                 }
+            stage('Deploying .....') {
+                steps {
+                    sshagent(['ec2-key']) {
+                        sh '''
+                        [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
+                        ssh-keyscan -t rsa,dsa 3.93.10.172 >> ~/.ssh/known_hosts
+                        ssh -i ${DEV_SERVER} 'docker-compose -f docker-compose.staging.yml up -d'
+                        '''
+                    }
+                }
+            }
         }
     }
 }
