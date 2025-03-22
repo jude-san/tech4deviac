@@ -23,9 +23,6 @@ pipeline {
 
     stages {
         stage('Deploy to Dev environment') {
-                when {
-                    branch 'jude-dev'
-                }
                 steps {
                     echo 'Deploying to staging environment ...'
                     // Example deployment using docker-compose
