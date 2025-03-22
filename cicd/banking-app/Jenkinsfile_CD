@@ -28,17 +28,14 @@ pipeline {
                     // Example deployment using docker-compose
                     sh '''
                     cat << 'EOF' > docker-compose.staging.yml
-<<<<<<< HEAD
-=======
-version: '3'
->>>>>>> 72f76f59d26c6b33472d152cead8ebbf40694f9c
+
 services:
   api:
-    image: judekhay/banking-api:v1.0.35
+    image: ${API_IMAGE}:${VERSION}
     ports:
       - 8080:8080
   processor:
-    image: judekhay/banking-processor:v1.0.35
+    image: ${PROCESSOR_IMAGE}:${VERSION}
     environment:
       - API_HOST=api
     ports:
@@ -46,7 +43,7 @@ services:
     depends_on:
       - api
   frontend:
-    image: judekhay/banking-frontend:v1.0.35
+    image: ${FRONTEND_IMAGE}:${VERSION}
     ports:
       - 80:80
     depends_on:
