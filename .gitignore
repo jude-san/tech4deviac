@@ -8,3 +8,4 @@ values.yaml
 *.pem
 jenkins_home
 .terraform.lock.*
+*.lock

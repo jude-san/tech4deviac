@@ -1,0 +1,79 @@
+pipeline {
+    agent any
+
+    environment {
+        // DockerHub credentials and repository info
+        DOCKER_HUB_CREDS = credentials('dockerhub-credentials')
+        DOCKER_HUB_REPO = 'judekhay'  // Replace with your DockerHub username
+
+        // Image names and tags
+        API_IMAGE = "${DOCKER_HUB_REPO}/banking-api"
+        PROCESSOR_IMAGE = "${DOCKER_HUB_REPO}/banking-processor"
+        FRONTEND_IMAGE = "${DOCKER_HUB_REPO}/banking-frontend"
+
+        // Version tag based on build number
+        VERSION = "v1.0.${BUILD_NUMBER}"
+
+        // Dev server SSH details
+
+        SSH_KEY = credentials('dev-server-ssh-key')
+
+        DEV_SERVER = 'ubuntu@3.93.10.172'
+    }
+
+    stages {
+        stage('Deploy to Dev environment') {
+                when {
+                    branch 'jude-dev'
+                }
+                steps {
+                    echo 'Deploying to staging environment ...'
+                    // Example deployment using docker-compose
+                    sh '''
+                    echo "version: '3'
+                    services:
+                    api:
+                        image: ${API_IMAGE}:${VERSION}
+                        ports:
+                        - 8080:8080
+                    processor:
+                        image: ${PROCESSOR_IMAGE}:${VERSION}
+                        environment:
+                        - API_HOST=api
+                        ports:
+                        - 5000:5000
+                        depends_on:
+                        - api
+                    frontend:
+                        image: ${FRONTEND_IMAGE}:${VERSION}
+                        ports:
+                        - 80:80
+                        depends_on:
+                        - api
+                        - processor
+                    " > docker-compose.staging.yml
+
+                    echo "sudo apt-get update
+                    sudo apt-get install ca-certificates curl
+                    sudo install -m 0755 -d /etc/apt/keyrings
+                    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+                    sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+                    # Add the repository to Apt sources:
+                    echo \
+                    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+                    $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+                    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+                    sudo apt-get update
+                    sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+                    " > install-docker.sh
+                    ssh -i ${SSH_KEY} DEV_SERVER 'mkdir -p /opt/banking-app/${VERSION}'
+                    scp -i ${SSH_KEY} docker-compose.staging.yml DEV_SERVER:/opt/banking-app/${VERSION}/docker-compose.yml
+                    scp -i ${SSH_KEY} install-docker.sh DEV_SERVER:/opt/banking-app/${VERSION}/install-docker.sh
+                    ssh -i ${SSH_KEY} DEV_SERVER 'cd /opt/banking-app/${VERSION} && chmod +x install-docker.sh && ./install-docker.sh'
+                    ssh -i ${SSH_KEY} DEV_SERVER 'cd /opt/banking-app/${VERSION} && docker-compose up -d'
+                    '''
+                }
+        }
+    }
+}
