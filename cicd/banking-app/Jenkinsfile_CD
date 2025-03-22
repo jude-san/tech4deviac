@@ -66,6 +66,7 @@ pipeline {
 
                         scp -i /tmp/private_key.pem docker-compose.staging.yml ${DEV_SERVER}:/home/ubuntu/bankingApp
 
+                        ssh -i /tmp/private_key.pem ${DEV_SERVER} 'cat /home/ubuntu/bankingApp/docker-compose.staging.yml'
                         ssh -i /tmp/private_key.pem ${DEV_SERVER} 'cd /home/ubuntu/bankingApp && sudo docker compose -f docker-compose.staging.yml up -d'
                         '''
                 }
