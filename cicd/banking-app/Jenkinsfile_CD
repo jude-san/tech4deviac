@@ -64,11 +64,11 @@ pipeline {
                     sudo apt-get update
                     sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
                     " > install-docker.sh
-                    ssh -i ${SSH_KEY} DEV_SERVER 'mkdir -p /opt/banking-app/${VERSION}'
-                    scp -i ${SSH_KEY} docker-compose.staging.yml DEV_SERVER:/opt/banking-app/${VERSION}/docker-compose.yml
-                    scp -i ${SSH_KEY} install-docker.sh DEV_SERVER:/opt/banking-app/${VERSION}/install-docker.sh
-                    ssh -i ${SSH_KEY} DEV_SERVER 'cd /opt/banking-app/${VERSION} && chmod +x install-docker.sh && ./install-docker.sh'
-                    ssh -i ${SSH_KEY} DEV_SERVER 'cd /opt/banking-app/${VERSION} && docker-compose up -d'
+                    ssh -i ${SSH_KEY} ${DEV_SERVER} 'mkdir -p /opt/banking-app/${VERSION}'
+                    scp -i ${SSH_KEY} docker-compose.staging.yml ${DEV_SERVER}:/opt/banking-app/${VERSION}/docker-compose.yml
+                    scp -i ${SSH_KEY} install-docker.sh ${DEV_SERVER}:/opt/banking-app/${VERSION}/install-docker.sh
+                    ssh -i ${SSH_KEY} ${DEV_SERVER} 'cd /opt/banking-app/${VERSION} && chmod +x install-docker.sh && ./install-docker.sh'
+                    ssh -i ${SSH_KEY} ${DEV_SERVER} 'cd /opt/banking-app/${VERSION} && docker-compose up -d'
                     '''
                 }
         }
