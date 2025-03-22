@@ -72,7 +72,7 @@ pipeline {
                 steps {
                     sshagent(['ec2-key']) {
                         sh '''
-                    [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
+                    [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 600 ~/.ssh
                     ssh-keyscan -t rsa,dsa 3.93.10.172 >> ~/.ssh/known_hosts
                     ssh -i ${DEV_SERVER} 'docker-compose -f docker-compose.staging.yml up -d'
                     '''
