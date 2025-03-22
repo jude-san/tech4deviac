@@ -16,7 +16,7 @@ pipeline {
         
         // Dev server SSH details
 
-        SSH_KEY = credentials('DEV_SERVER-ssh-key')
+        SSH_KEY = credentials('dev-server-ssh-key')
 
         DEV_SERVER = "ubuntu@3.93.10.172"
     }
