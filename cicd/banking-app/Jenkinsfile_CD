@@ -67,17 +67,17 @@ pipeline {
 
                     '''
                 }
-            stage('Deploying .....') {
+            }
+        stage('Deploying .....') {
                 steps {
                     sshagent(['ec2-key']) {
                         sh '''
-                        [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
-                        ssh-keyscan -t rsa,dsa 3.93.10.172 >> ~/.ssh/known_hosts
-                        ssh -i ${DEV_SERVER} 'docker-compose -f docker-compose.staging.yml up -d'
-                        '''
+                    [ -d ~/.ssh ] || mkdir ~/.ssh && chmod 0700 ~/.ssh
+                    ssh-keyscan -t rsa,dsa 3.93.10.172 >> ~/.ssh/known_hosts
+                    ssh -i ${DEV_SERVER} 'docker-compose -f docker-compose.staging.yml up -d'
+                    '''
                     }
                 }
             }
-        }
     }
 }
