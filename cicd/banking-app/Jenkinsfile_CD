@@ -28,6 +28,10 @@ pipeline {
                     // Example deployment using docker-compose
                     sh '''
                     cat << 'EOF' > docker-compose.staging.yml
+<<<<<<< HEAD
+=======
+version: '3'
+>>>>>>> 72f76f59d26c6b33472d152cead8ebbf40694f9c
 services:
   api:
     image: judekhay/banking-api:v1.0.35
@@ -67,9 +71,13 @@ EOF
                         scp -i /tmp/private_key.pem docker-compose.staging.yml ${DEV_SERVER}:/home/ubuntu/bankingApp
 
                         ssh -i /tmp/private_key.pem ${DEV_SERVER} 'cat /home/ubuntu/bankingApp/docker-compose.staging.yml'
+<<<<<<< HEAD
 
                         ssh -i /tmp/private_key.pem ${DEV_SERVER} 'cd /home/ubuntu/bankingApp && sudo docker compose -f docker-compose.staging.yml up -d'
 
+=======
+                        ssh -i /tmp/private_key.pem ${DEV_SERVER} 'cd /home/ubuntu/bankingApp && sudo docker compose -f docker-compose.staging.yml up -d'
+>>>>>>> 72f76f59d26c6b33472d152cead8ebbf40694f9c
                         '''
                 }
         }
