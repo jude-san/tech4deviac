@@ -66,7 +66,7 @@ pipeline {
                     " > install-docker.sh
 
                     ssh-keyscan -H 3.93.10.172 >> ~/.ssh/known_hosts
-                    echo "${SSH_KEY}" > /tmp/private_key
+                    echo "${SSH_KEY}" | sed 's/\\n/\\n/g'  > /tmp/private_key
                     chmod 600 /tmp/private_key
                     ssh -i /tmp/private_key ${DEV_SERVER} 'mkdir -p /opt/banking-app/${VERSION}'
                     scp -i /tmp/private_key docker-compose.staging.yml ${DEV_SERVER}:/opt/banking-app/${VERSION}/docker-compose.yml
