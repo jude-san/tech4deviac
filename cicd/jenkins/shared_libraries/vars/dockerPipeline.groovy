@@ -4,7 +4,7 @@ def call(Map config = [:]) {
         repoUrl: config.repoUrl ?: '',
         branch: config.branch ?: 'main',
         dockerHubCredentials: config.dockerHubCredentials ?: 'docker-hub-credentials',
-        dockerHubRepo: config.dockerHubRepo ?: '',
+        dockerHubRepo: config.dockerHubRepo ?: 'david930',
         components: config.components ?: [],
         notifyOnSuccess: config.notifyOnSuccess ?: false,
         notifyOnFailure: config.notifyOnFailure ?: true,
