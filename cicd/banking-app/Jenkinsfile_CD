@@ -61,9 +61,9 @@ services:
       - api
       - processor
   
-  networks:
-    backend:
-      driver: bridge
+networks:
+  backend:
+    driver: bridge
     
 EOF
                     '''
@@ -85,11 +85,12 @@ EOF
 
                         # Run the docker-compose command on the remote server with environment variables
                         
-                        ssh -i /tmp/private_key.pem ${DEV_SERVER} 'export API_IMAGE=${API_IMAGE} PROCESSOR_IMAGE=${PROCESSOR_IMAGE} FRONTEND_IMAGE=${FRONTEND_IMAGE} VERSION=${VERSION}'
-
-                        ssh -i /tmp/private_key.pem ${DEV_SERVER} 'cat /home/ubuntu/bankingApp/docker-compose.staging.yml'
-
-                        ssh -i /tmp/private_key.pem ${DEV_SERVER} 'cd /home/ubuntu/bankingApp && sudo docker compose -f docker-compose.staging.yml up -d'
+                        ssh -i /tmp/private_key.pem ${DEV_SERVER} "cd /home/ubuntu/bankingApp && \
+                        export API_IMAGE=${API_IMAGE} && \
+                        export PROCESSOR_IMAGE=${PROCESSOR_IMAGE} && \
+                        export FRONTEND_IMAGE=${FRONTEND_IMAGE} && \
+                        export VERSION=${VERSION} && \
+                        sudo -E docker compose -f docker-compose.staging.yml up -d"
 
                         '''
                 }
