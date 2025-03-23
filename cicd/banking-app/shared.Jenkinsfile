@@ -29,7 +29,7 @@ def components = [
 ]
 
 dockerPipeline(
-    dockerHubCredentials: 'docker-hub-credentials',
+    dockerHubCredentials: 'dockerhub-credentials',
     dockerHubRepo: 'david930',
     components: components,
     notifyOnSuccess: false,
