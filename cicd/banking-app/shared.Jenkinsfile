@@ -1,3 +1,38 @@
-@Library('../jenkins/shared_libraries') _
+@Library('shared_libraries@assignment') _
 
-dockerPipeline(branch: 'main', dockerRepo: 'david390')
+
+def components = [
+    [
+        name: 'API',
+        language: 'go',
+        path: 'cicd/banking-app/backend-api',
+        imageName: 'banking-api',
+        lint: true,
+        test: true
+    ],
+    [
+        name: 'Transaction Service',
+        language: 'python',
+        path: 'cicd/banking-app/transaction-service',
+        imageName: 'banking-processor',
+        lint: true,
+        test: true
+    ],
+    [
+        name: 'Frontend',
+        language: 'javascript',
+        path: 'cicd/banking-app/frontend',
+        imageName: 'banking-frontend',
+        lint: true,
+        test: false
+    ]
+]
+
+dockerPipeline(
+    dockerHubCredentials: 'docker-hub-credentials',
+    dockerHubRepo: 'david930',
+    components: components,
+    notifyOnSuccess: false,
+    notifyOnFailure: true,
+    notifyRecipients: ['menion@devlabs.com']
+)

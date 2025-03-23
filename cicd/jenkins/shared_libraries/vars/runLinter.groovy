@@ -1,8 +1,9 @@
 def call(Map config = [:]) {
     def language = config.language ?: error("Missing required parameter 'language'")
     def directory = config.directory ?: '.'
+    def failOnError = config.failOnError ?: false
 
-    echo "Running linter for ${language} in ${directory}"
+    echo "Running linter for ${language} in directory ${directory}"
 
     switch(language.toLowerCase()) {
         case 'go':

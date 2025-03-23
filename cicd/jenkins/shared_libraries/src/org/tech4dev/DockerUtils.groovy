@@ -7,8 +7,8 @@ class DockerUtils implements Serializable {
         }
     }
 
-    String formatDockerImageName(String dockerRepo, String serviceName) {
-        return "${dockerRepo}/${serviceName}"
+    String formatDockerImageName(String baseName, String component, String version) {
+        return "${baseName}/${component}:${version}"
     }
 
 }
