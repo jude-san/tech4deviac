@@ -27,7 +27,7 @@ pipeline {
                     echo 'Deploying to staging environment ...'
                     // Example deployment using docker-compose
                     sh '''
-                    cat << 'EOF' > docker-compose.staging.yml
+                    cat << "EOF" > docker-compose.staging.yml
 
 services:
   # API service
@@ -62,8 +62,8 @@ services:
       - processor
   
   networks:
-  backend:
-    driver: bridge
+    backend:
+      driver: bridge
     
 EOF
                     '''
