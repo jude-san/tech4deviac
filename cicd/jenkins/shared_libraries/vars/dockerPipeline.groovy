@@ -3,7 +3,7 @@ def call(Map config = [:]) {
     Map pipelineConfig = [
         repoUrl: config.repoUrl ?: '',
         branch: config.branch ?: 'main',
-        dockerHubCredentials: config.dockerHubCredentials ?: 'docker-hub-credentials',
+        dockerHubCredentials: config.dockerHubCredentials ?: 'dockerhub-credentials',
         dockerHubRepo: config.dockerHubRepo ?: 'david930',
         components: config.components ?: [],
         notifyOnSuccess: config.notifyOnSuccess ?: false,

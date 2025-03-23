@@ -5,7 +5,7 @@ def call(Map config = [:]) {
     def buildArgs = config.buildArgs ?: []
     def push = config.push ?: false
     def version = config.version ?: 'latest'
-    def credentialsId = config.credentialsId ?: 'docker-hub-credentials'
+    def credentialsId = config.credentialsId ?: 'dockerhub-credentials'
     def additionalTags = config.additionalTags ?: []
 
     def buildCmd = "docker build -t ${imageName}:${version}"
