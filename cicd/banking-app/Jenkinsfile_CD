@@ -30,10 +30,15 @@ pipeline {
                     cat << 'EOF' > docker-compose.staging.yml
 
 services:
+  # API service
   api:
     image: ${API_IMAGE}:${VERSION}
     ports:
       - 8080:8080
+    networks:
+      - backend
+
+  # Processor service
   processor:
     image: ${PROCESSOR_IMAGE}:${VERSION}
     environment:
@@ -42,13 +47,23 @@ services:
       - 5000:5000
     depends_on:
       - api
+    networks:
+      - backend
+      
+  # Frontend service
   frontend:
     image: ${FRONTEND_IMAGE}:${VERSION}
     ports:
       - 80:80
+    networks:
+      - backend
     depends_on:
       - api
       - processor
+  
+  networks:
+  backend:
+    driver: bridge
 EOF
                     '''
                 }
