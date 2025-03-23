@@ -100,6 +100,7 @@ def call(Map config = [:]) {
 
                 sh 'docker logout'
             }
+            }
 
             success {
                 script {
