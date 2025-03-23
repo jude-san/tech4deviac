@@ -83,6 +83,10 @@ EOF
 
                         scp -i /tmp/private_key.pem docker-compose.staging.yml ${DEV_SERVER}:/home/ubuntu/bankingApp
 
+                        # Run the docker-compose command on the remote server with environment variables
+                        
+                        ssh -i /tmp/private_key.pem ${DEV_SERVER} 'export API_IMAGE=${API_IMAGE} PROCESSOR_IMAGE=${PROCESSOR_IMAGE} FRONTEND_IMAGE=${FRONTEND_IMAGE} VERSION=${VERSION}'
+
                         ssh -i /tmp/private_key.pem ${DEV_SERVER} 'cat /home/ubuntu/bankingApp/docker-compose.staging.yml'
 
                         ssh -i /tmp/private_key.pem ${DEV_SERVER} 'cd /home/ubuntu/bankingApp && sudo docker compose -f docker-compose.staging.yml up -d'
