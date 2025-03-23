@@ -5,9 +5,9 @@ def call(Map config = [:]) {
         branch: config.branch ?: 'main',
         dockerHubCredentials: config.dockerHubCredentials ?: 'docker-hub-credentials',
         dockerHubRepo: config.dockerHubRepo ?: '',
-        components: config.components ?: []
+        components: config.components ?: [],
         notifyOnSuccess: config.notifyOnSuccess ?: false,
-        notifyOnFailure: config.notifyOnFailure ?: true
+        notifyOnFailure: config.notifyOnFailure ?: true,
         notifyRecipients: config.notifyRecipients ?: []
     ]
 
