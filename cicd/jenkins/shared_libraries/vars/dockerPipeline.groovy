@@ -28,6 +28,18 @@ def call(Map config = [:]) {
                 }
             }
 
+            stage('Build Commit Info') {
+                steps {
+                    script {
+                        def commitInfo = getCommitInfo()
+                        echo "Commit Hash: ${commitInfo.commitHash}"
+                        echo "Commit Message: ${commitInfo.commitMessage}"
+                        echo "Commit Author: ${commitInfo.commitAuthor}"
+                        echo "Commit Date: ${commitInfo.commitDate}"
+                    }
+                }
+            }
+
             stage('Lint and Format Check') {
                 steps {
                     script {

@@ -18,7 +18,7 @@ def call(Map config = [:]) {
         buildCmd += " --build-arg ${arg}"
     }
 
-    buildCmd += " -f ${dockerfile} ${buildArgs} ${directory}"
+    buildCmd += " -f ${dockerfile} ${directory}"
 
     dir(directory) {
         sh buildCmd
