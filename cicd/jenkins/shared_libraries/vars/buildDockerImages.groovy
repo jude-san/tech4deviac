@@ -1,19 +1,47 @@
 def call(Map config = [:]) {
     def directory = config.directory ?: '.'
     def imageName = config.imageName ?: error("Missing required parameter 'imageName'")
-    def tag = config.tag ?: 'latest'
     def dockerfile = config.dockerfile ?: 'Dockerfile'
-    def buildArgs = config.buildArgs ?: ''
+    def buildArgs = config.buildArgs ?: []
     def push = config.push ?: false
+    def version = config.version ?: 'latest'
+    def credentialsId = config.credentialsId ?: 'dockerhub-credentials'
+    def additionalTags = config.additionalTags ?: []
 
-    echo "Building Docker image ${imageName}:${tag} from ${dockerfile} in ${directory}"
+    def buildCmd = "docker build -t ${imageName}:${version}"
 
-    docker.build("${imageName}:${tag}", dockerfile, buildArgs)
+    additionalTags.each { tag ->
+        buildCmd += " -t ${imageName}:${tag}"
+    }
 
-    if(push) {
-        echo "Pushing Docker image ${imageName}:${tag}"
-        docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-            docker.image("${imageName}:${tag}").push()
+    buildArgs.each { arg ->
+        buildCmd += " --build-arg ${arg}"
+    }
+
+    buildCmd += " -f ${dockerfile} ${directory}"
+
+    dir(directory) {
+        sh buildCmd
+    }
+
+    if (push) {
+        if (!credentialsId) {
+            error "Missing required parameter 'credentialsId' for pushing Docker image"
+        }
+
+        withCredentials([usernamePassword(credentialsId: credentialsId, 
+                                            usernameVariable: 'DOCKER_HUB_CREDS_USR', 
+                                            passwordVariable: 'DOCKER_HUB_CREDS_PSW')]) {
+            sh "echo ${DOCKER_HUB_CREDS_PSW} | docker login -u ${DOCKER_HUB_CREDS_USR} --password-stdin"
+            sh "docker push ${imageName}:${version}"
+
+            additionalTags.each { tag ->
+                sh "docker push ${imageName}:${tag}"
+            }
+
+            echo "Image ${imageName}:${version} pushed to DockerHub!"
+
+            sh "docker logout"
         }
     }
 }

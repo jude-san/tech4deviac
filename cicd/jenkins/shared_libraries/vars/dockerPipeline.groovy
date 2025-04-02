@@ -1,15 +1,24 @@
 def call(Map config = [:]) {
 
     Map pipelineConfig = [
+        repoUrl: config.repoUrl ?: '',
         branch: config.branch ?: 'main',
-        dockerRepo: config.dockerRepo ?: 'david390',
+        dockerHubCredentials: config.dockerHubCredentials ?: 'dockerhub-credentials',
+        dockerHubRepo: config.dockerHubRepo ?: 'david930',
+        components: config.components ?: [],
+        notifyOnSuccess: config.notifyOnSuccess ?: false,
+        notifyOnFailure: config.notifyOnFailure ?: true,
+        notifyRecipients: config.notifyRecipients ?: []
     ]
 
     def dockerUtils = new org.tech4dev.DockerUtils()
+    def notificationUtils = new org.tech4dev.NotificationUtils()
 
     pipeline {
         agent any
         environment {
+            DOCKER_HUB_CREDS = credentials("${pipelineConfig.dockerHubCredentials}")
+            DOCKER_HUB_REPO = "${pipelineConfig.dockerHubRepo}"
             VERSION = "v1.0.${BUILD_NUMBER}"
         }
         stages {
@@ -19,26 +28,111 @@ def call(Map config = [:]) {
                 }
             }
 
+            stage('Build Commit Info') {
+                steps {
+                    script {
+                        def commitInfo = getCommitInfo()
+                        echo "Commit Hash: ${commitInfo.commitHash}"
+                        echo "Commit Message: ${commitInfo.commitMessage}"
+                        echo "Commit Author: ${commitInfo.commitAuthor}"
+                        echo "Commit Date: ${commitInfo.commitDate}"
+                    }
+                }
+            }
+
             stage('Lint and Format Check') {
                 steps {
-                    dockerUtils.runLinter(language: 'go', directory: 'cicd/banking-app/backend-api')
-                    dockerUtils.runLinter(language: 'python', directory: 'cicd/banking-app/transaction-service')
-                    dockerUtils.runLinter(language: 'javascript', directory: 'cicd/banking-app/frontend')
+                    script {
+                        def lintStages = [:]
+                        pipelineConfig.components.each { component ->
+                            if (component.lint) {
+                                lintStages["Lint ${component.name}"] = {
+                                    runLinter(
+                                        language: component.language,
+                                        directory: component.path,
+                                        failOnError: component.lintFailsBuilds ?: false
+                                    )
+                                }
+                            }}
+                        parallel lintStages
+                    }
                 }
             }
 
             stage('Test') {
                 steps {
-                    dockerUtils.runTests(language: 'go', directory: 'cicd/banking-app/backend-api')
-                    dockerUtils.runTests(language: 'python', directory: 'cicd/banking-app/transaction-service')
+                    script {
+                        def testStages = [:]
+                        
+                        pipelineConfig.components.each { component ->
+                            if (component.test) {
+                                testStages["Test ${component.name}"] = {
+                                    runTests(
+                                        language: component.language,
+                                        directory: component.path
+                                    )
+                                }
+                            }
+                        }
+                        
+                        parallel testStages
+                    }
                 }
             }
 
-            stage('Build Docker Images') {
+            stage('Push Images to DockerHub') {
                 steps {
-                    dockerUtils.buildDockerImages(imageName: '${config.dockerRepo}/banking-api', directory: 'cicd/banking-app/backend-api', push: true)
-                    dockerUtils.buildDockerImages(imageName: '${config.dockerRepo}/banking-processor', directory: 'cicd/banking-app/transaction-service', push: true)
-                    dockerUtils.buildDockerImages(imageName: '${config.dockerRepo}/banking-frontend', directory: 'cicd/banking-app/frontend', push: true)
+                    script {
+                        // Login to DockerHub
+                        sh 'echo ${DOCKER_HUB_CREDS_PSW} | docker login -u ${DOCKER_HUB_CREDS_USR} --password-stdin'
+                        
+                        // Push all images
+                        pipelineConfig.components.each { component ->
+                            sh """
+                            docker push ${DOCKER_HUB_REPO}/${component.imageName}:${VERSION}
+                            docker push ${DOCKER_HUB_REPO}/${component.imageName}:latest
+                            """
+                        }
+                        
+                        echo 'Images pushed to DockerHub!'
+                    }
+                }
+            }
+        }
+
+        post {
+            always {
+                script {
+                    pipelineConfig.components.each { component ->
+                        sh """
+                        docker rmi ${DOCKER_HUB_REPO}/${component.imageName}:${VERSION} || true
+                        docker rmi ${DOCKER_HUB_REPO}/${component.imageName}:latest || true
+                        """
+                }
+
+                sh 'docker logout'
+            }
+            }
+
+            success {
+                script {
+                    if (pipelineConfig.notifyOnSuccess) {
+                        notificationUtils.sendSuccessNotification(
+                            recipients: pipelineConfig.notifyRecipients,
+                            buildUrl: env.BUILD_URL
+                        )
+                    }
+                }
+            }
+
+            failure {
+                script {
+                    if (pipelineConfig.notifyOnFailure) {
+                        notificationUtils.sendFailureNotification(
+                            recipients: pipelineConfig.notifyRecipients,
+                            buildUrl: env.BUILD_URL
+                        )
+                    }
                 }
             }
         }

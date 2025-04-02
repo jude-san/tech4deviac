@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Jenkins Build Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .header {
+            background-color: {{STATUS_COLOR}};
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .content {
+            padding: 20px;
+            line-height: 1.5;
+        }
+        .footer {
+            background-color: #f5f5f5;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+        .button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            Build Status: {{BUILD_STATUS}}
+        </div>
+        <div class="content">
+            <p>Your Jenkins build has completed with status: <strong>{{BUILD_STATUS}}</strong>.</p>
+            <p>Please check the build for more details:</p>
+            <a href="{{BUILD_URL}}" class="button">View Build</a>
+        </div>
+        <div class="footer">
+            This is an automated message from Jenkins. Please do not reply to this email.
+        </div>
+    </div>
+</body>
+</html>
