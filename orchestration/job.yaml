@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-backup
+  namespace: default
+  labels:
+    app: backup
+spec:
+  template:
+    metadata:
+      name: db-backup
+      labels:
+        app: backup
+    spec:
+      containers:
+        - name: backup
+          image: busybox
+          command: ["sh", "-c", "echo Backing up Redis.... && sleep 20"]
+      restartPolicy: OnFailure
+---
+
