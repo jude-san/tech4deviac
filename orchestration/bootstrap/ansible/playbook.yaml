@@ -1,0 +1,393 @@
+# Kubernetes Cluster Setup Playbook with Cilium CNI
+# Supports Ubuntu 22.04 LTS
+---
+- name: Setup Kubernetes Cluster
+  hosts: all
+  become: true
+  vars:
+    kubernetes_version: "1.32.3-00"
+    container_runtime: "containerd"
+    pod_network_cidr: "10.0.0.0/8"
+    control_plane_endpoint: "k8s-cluster.local"
+    cluster_name: "learning-cluster"
+    cilium_version: "v1.17.2"
+
+  tasks:
+    - name: Update and upgrade system packages
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: dist
+        cache_valid_time: 3600
+
+    - name: Install required system packages
+      ansible.builtin.apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - software-properties-common
+          - linux-headers-$(uname -r)
+          - bpfcc-tools
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create directory for Docker GPG key
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Add Docker GPG key (ASCII-armored)
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+      register: docker_gpg_key
+
+    - name: Ensure Docker GPG key is armored
+      ansible.builtin.command: gpg --dearmor --yes < /etc/apt/keyrings/docker.asc
+      args:
+        creates: /etc/apt/keyrings/docker.gpg
+        removes: /etc/apt/keyrings/docker.gpg
+      register: gpg_conversion
+      when: docker_gpg_key.changed
+
+    - name: Save dearmored GPG key
+      ansible.builtin.copy:
+        content: "{{ gpg_conversion.stdout }}"
+        dest: /etc/apt/keyrings/docker.gpg
+        mode: "0644"
+      when: gpg_conversion.changed
+
+    - name: Set up Docker repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/docker.list
+        content: "deb [arch={{ ansible_architecture }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        mode: "0644"
+
+    - name: Download Kubernetes GPG key
+      ansible.builtin.get_url:
+        url: https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key
+        dest: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+        mode: "0644"
+
+    - name: Check if Kubernetes GPG key needs armoring
+      ansible.builtin.command:
+        cmd: gpg --list-packets /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      register: gpg_check
+      changed_when: false
+      ignore_errors: true
+
+    - name: Ensure Kubernetes GPG key is armored
+      ansible.builtin.command:
+        cmd: gpg --dearmor --yes --output /etc/apt/keyrings/kubernetes-apt-keyring.gpg /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      when: gpg_check.rc != 0 and ansible_facts['os_family'] == 'Debian'
+      changed_when: gpg_check.rc != 0
+
+    - name: Add Kubernetes repository
+      ansible.builtin.command: >
+        bash -c "set -o pipefail &&
+        echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /' >
+        /etc/apt/sources.list.d/kubernetes.list"
+      args:
+        creates: /etc/apt/sources.list.d/kubernetes.list
+
+    - name: Update package cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install containerd
+      ansible.builtin.apt:
+        pkg:
+          - containerd.io
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Configure containerd
+      block:
+        - name: Create containerd config directory
+          ansible.builtin.file:
+            path: /etc/containerd
+            state: directory
+            mode: "0755"
+
+        - name: Generate default containerd config
+          ansible.builtin.command:
+            cmd: containerd config default > /etc/containerd/config.toml
+          args:
+            creates: /etc/containerd/config.toml
+
+        - name: Enable SystemdCgroup
+          ansible.builtin.lineinfile:
+            path: /etc/containerd/config.toml
+            regexp: '(\s*)SystemdCgroup = false'
+            line: '\1SystemdCgroup = true'
+            backrefs: true
+
+        - name: Restart containerd
+          ansible.builtin.systemd:
+            name: containerd
+            state: restarted
+            enabled: true
+
+    - name: Install Kubernetes packages
+      ansible.builtin.apt:
+        pkg:
+          - kubelet={{ kubernetes_version }}
+          - kubeadm={{ kubernetes_version }}
+          - kubectl={{ kubernetes_version }}
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Check current package holds
+      ansible.builtin.shell: dpkg --get-selections | grep hold | awk '{print $1}'
+      register: current_holds
+      changed_when: false
+      check_mode: no
+
+    - name: Hold Kubernetes packages
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+      when: item not in current_holds.stdout_lines
+
+    - name: Configure kubelet to use containerd
+      ansible.builtin.copy:
+        dest: /etc/default/kubelet
+        content: |
+          KUBELET_EXTRA_ARGS="--container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock"
+        mode: "0644"
+
+    - name: Disable swap
+      ansible.builtin.shell: |
+        swapoff -a
+        sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+      args:
+        creates: /etc/fstab.swap_disabled
+      when: ansible_facts['swaptotal_mb'] > 0
+      register: swap_disabled
+      notify: Mark swap as disabled
+
+    - name: Configure kernel modules for Kubernetes and Cilium
+      ansible.builtin.copy:
+        dest: /etc/modules-load.d/k8s-cilium.conf
+        content: |
+          overlay
+          br_netfilter
+          ip_tables
+          nf_nat
+          nf_conntrack
+        mode: "0644"
+      notify: Load kernel modules
+
+    - name: Create sysctl configuration for Kubernetes and Cilium
+      ansible.builtin.copy:
+        dest: "/etc/sysctl.d/k8s-cilium.conf"
+        content: |
+          net.bridge.bridge-nf-call-iptables = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+          net.ipv4.ip_forward = 1
+          net.ipv4.conf.all.rp_filter = 0
+          net.ipv4.conf.default.rp_filter = 0
+      notify: Apply sysctl settings
+
+    - name: Initialize Kubernetes control plane
+      ansible.builtin.command:
+        cmd: >
+          kubeadm init
+          --pod-network-cidr={{ pod_network_cidr }}
+          --control-plane-endpoint={{ control_plane_endpoint }}
+          --upload-certs
+          --node-name={{ inventory_hostname }}
+          --kubernetes-version={{ kubernetes_version | regex_replace('-00$', '') }}
+      when: is_control_plane | bool
+      register: kubeadm_init
+      args:
+        creates: /etc/kubernetes/admin.conf
+
+    - name: Create .kube directory for root
+      ansible.builtin.file:
+        path: /root/.kube
+        state: directory
+        mode: "0700"
+      when: is_control_plane | bool
+
+    - name: Copy admin.conf to root's .kube directory
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /root/.kube/config
+        remote_src: true
+        mode: "0600"
+      when: is_control_plane | bool
+
+    - name: Check Cilium CLI version
+      ansible.builtin.shell: 'cilium version | grep -Po "v[0-9]+\.[0-9]+\.[0-9]+" || echo "not-installed"'
+      register: cilium_current_version
+      changed_when: false
+      failed_when: false
+      when: "is_control_plane | bool"
+
+    - name: Install Cilium CLI
+      ansible.builtin.shell: |
+        CLI_ARCH=amd64
+        if [ "$(uname -m)" = "arm64" ]; then CLI_ARCH=arm64; fi
+        curl -L https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CLI_ARCH}.tar.gz | tar -C /usr/local/bin -xzv
+      vars:
+        CILIUM_CLI_VERSION: "{{ cilium_version }}"
+      when: "(is_control_plane | bool) and (cilium_current_version.stdout == 'not-installed' or cilium_current_version.stdout != cilium_version)"
+      mode: "0755"
+
+    - name: Install Cilium
+      ansible.builtin.command:
+        cmd: cilium install --version {{ cilium_version }}
+      when: is_control_plane | bool
+      args:
+        creates: /etc/kubernetes/manifests/cilium.yaml
+
+    - name: Get join command
+      ansible.builtin.command:
+        cmd: kubeadm token create --print-join-command
+      register: join_command
+      when: is_control_plane | bool
+
+    - name: Set join command fact
+      ansible.builtin.set_fact:
+        join_command: "{{ hostvars[groups['control_plane'][0]]['join_command']['stdout'] }}"
+      when: not is_control_plane | bool
+
+    - name: Join worker nodes to cluster
+      ansible.builtin.command:
+        cmd: "{{ join_command }}"
+      when: not is_control_plane | bool
+      args:
+        creates: /etc/kubernetes/kubelet.conf
+
+  handlers:
+    - name: Load kernel modules
+      ansible.builtin.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+        - ip_tables
+        - nf_nat
+        - nf_conntrack
+
+    - name: Apply sysctl settings
+      ansible.posix.sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        state: present
+      loop:
+        - { key: 'net.bridge.bridge-nf-call-iptables', value: 1 }
+        - { key: 'net.bridge.bridge-nf-call-ip6tables', value: 1 }
+        - { key: 'net.ipv4.ip_forward', value: 1 }
+        - { key: 'net.ipv4.conf.all.rp_filter', value: 0 }
+        - { key: 'net.ipv4.conf.default.rp_filter', value: 0 }
+
+    - name: Mark swap as disabled
+      ansible.builtin.file:
+        path: /etc/fstab.swap_disabled
+        state: touch
+        mode: "0644"
+        owner: root
+        group: root
+
+- name: Configure Control Plane
+  hosts: control_plane
+  become: true
+  vars:
+    kubernetes_version: "1.32.3-00"
+    pod_network_cidr: "10.0.0.0/8"
+    control_plane_endpoint: "k8s-cluster.local"
+    cluster_name: "learning-cluster"
+    cilium_version: "v1.17.2"
+
+  tasks:
+    - name: Check Cilium CLI version
+      ansible.builtin.shell: 'cilium version | grep -Po "v[0-9]+\.[0-9]+\.[0-9]+" || echo "not-installed"'
+      register: cilium_current_version
+      changed_when: false
+      failed_when: false
+
+    - name: Install Cilium CLI
+      ansible.builtin.shell: |
+        CLI_ARCH=amd64
+        if [ "$(uname -m)" = "arm64" ]; then CLI_ARCH=arm64; fi
+        curl -L https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CLI_ARCH}.tar.gz | tar -C /usr/local/bin -xzv
+      vars:
+        CILIUM_CLI_VERSION: "{{ cilium_version }}"
+      when: "(cilium_current_version.stdout == 'not-installed' or cilium_current_version.stdout != cilium_version)"
+
+    - name: Initialize Kubernetes cluster with Cilium configuration
+      ansible.builtin.shell: |
+        kubeadm init \
+          --pod-network-cidr={{ pod_network_cidr }} \
+          --control-plane-endpoint={{ control_plane_endpoint }} \
+          --upload-certs
+      args:
+        creates: /etc/kubernetes/admin.conf
+
+    - name: Create Kubernetes config directory
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.kube"
+        state: directory
+        mode: "0700"
+
+    - name: Copy admin.conf to user's kube config
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ ansible_env.HOME }}/.kube/config"
+        remote_src: true
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+
+    - name: Install Cilium CNI
+      ansible.builtin.shell: |
+        cilium install --version {{ cilium_version }}
+        cilium status
+        cilium connectivity test
+      args:
+        creates: /usr/local/bin/cilium
+
+    - name: Generate join command for worker nodes
+      ansible.builtin.command:
+        cmd: kubeadm token create --print-join-command
+      register: join_command
+      changed_when: false
+
+    - name: Store join command
+      ansible.builtin.copy:
+        content: "{{ join_command.stdout_lines[0] }}"
+        dest: "./kubernetes_join_command.sh"
+        mode: "0644"
+      delegate_to: localhost
+      become: false
+
+- name: Join Worker Nodes to Cluster
+  hosts: worker_nodes
+  become: true
+  tasks:
+    - name: Copy join command
+      ansible.builtin.copy:
+        src: ./kubernetes_join_command.sh
+        dest: /tmp/kubernetes_join_command.sh
+        mode: "0755"
+
+    - name: Join cluster
+      ansible.builtin.command:
+        cmd: /tmp/kubernetes_join_command.sh
+      args:
+        creates: /etc/kubernetes/kubelet.conf
