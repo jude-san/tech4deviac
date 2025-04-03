@@ -4,6 +4,5 @@ venv
 **/terraform.tfstate*
 .envrc
 volume
-values.yaml
 *.pem
 jenkins_home
