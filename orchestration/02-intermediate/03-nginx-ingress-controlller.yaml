@@ -1,0 +1,114 @@
+# NGINX Ingress Controller installation
+#apiVersion: v1
+#kind: Namespace
+#metadata:
+#  name: nginx-ingress
+#  labels:
+#    app.kubernetes.io/name: nginx-ingress
+#    app.kubernetes.io/instance: nginx-ingress
+#---
+# Source: nginx-ingress/templates/controller-serviceaccount.yaml
+#apiVersion: v1
+#kind: ServiceAccount
+#metadata:
+#  labels:
+#    app.kubernetes.io/name: nginx-ingress
+#    app.kubernetes.io/instance: nginx-ingress
+#    app.kubernetes.io/version: 1.1.0
+#    app.kubernetes.io/component: controller
+#  name: nginx-ingress
+#  namespace: nginx-ingress
+#---
+# Source: nginx-ingress/templates/controller-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: nginx-ingress
+    app.kubernetes.io/instance: nginx-ingress
+    app.kubernetes.io/component: controller
+  name: nginx-ingress-controller
+  namespace: nginx-ingress
+data:
+  use-forwarded-headers: "true"
+---
+# Source: nginx-ingress/templates/controller-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: nginx-ingress
+    app.kubernetes.io/instance: nginx-ingress
+    app.kubernetes.io/component: controller
+  name: nginx-ingress-controller
+  namespace: nginx-ingress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nginx-ingress
+      app.kubernetes.io/instance: nginx-ingress
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nginx-ingress
+        app.kubernetes.io/instance: nginx-ingress
+        app.kubernetes.io/component: controller
+    spec:
+      containers:
+        - name: controller
+          image: nginx/nginx-ingress
+          args:
+            - /nginx-ingress-controller
+            - --publish-service=$(POD_NAMESPACE)/nginx-ingress-controller
+            - --election-id=ingress-controller-leader
+            - --ingress-class=nginx
+            - --configmap=$(POD_NAMESPACE)/nginx-ingress-controller
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+            - name: https
+              containerPort: 443
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 90Mi
+      serviceAccountName: nginx-ingress
+---
+# Source: nginx-ingress/templates/controller-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: nginx-ingress
+    app.kubernetes.io/instance: nginx-ingress
+    app.kubernetes.io/component: controller
+  name: nginx-ingress-controller
+  namespace: nginx-ingress
+spec:
+  type: LoadBalancer
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: http
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: https
+  selector:
+    app.kubernetes.io/name: nginx-ingress
+    app.kubernetes.io/instance: nginx-ingress
+    app.kubernetes.io/component: controller
