@@ -1,0 +1,43 @@
+# Use the following command to install the lateste version of cert-manager in your cluster.
+# kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.0/cert-manager.yaml
+#
+# The documentation link is found here:
+# https://cert-manager.io/docs/installation/kubectl/
+
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: mega-clusterissuer
+spec:
+  ca:
+    secretName: mega-ca-secret-tls
+
+---
+# Generate public, private keys and self-signed cert
+# create certificate authority private key
+# openssl genrsa -out ca.key 4096
+# create CA using key we created in the previous step.
+# openssl req -new -x509 -sha256 -days 10950 -key ca.key -out ca.crt
+# verification of openssl certs
+# openssl x509 -in ca.crt -text -noout
+# Create tls secret using the following command
+# kubectl create secret tls mega-ca-secret-tls --cert=ca.crt --key=ca.key -n cert-manager
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: mega-cert
+spec:
+  secretName: mega-tls-secret
+  issuerRef:
+    name: mega-clusterissuer
+    kind: ClusterIssuer
+  dnsNames:
+    - app1.example.com
+    - app2.example.com
+
+---
+# If no installation of nginx is available in your KinD cluster, install using the command below:
+# kubectl apply -f https://kind.sigs.k8s.io/examples/ingress/deploy-ingress-nginx.yaml
+
