@@ -1,0 +1,7 @@
+alloy:
+  enableReporting: false
+  mounts:
+    varlog: true
+    # -- Mount /var/lib/docker/containers from the host into the container for log
+    # collection.
+    dockercontainers: true

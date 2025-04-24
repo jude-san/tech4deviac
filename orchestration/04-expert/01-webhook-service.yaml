@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: webhook-demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-server
+  namespace: webhook-demo
+  labels:
+    app: webhook-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webhook-server
+  template:
+    metadata:
+      labels:
+        app: webhook-server
+    spec:
+      containers:
+        - name: webhook-server
+          image: nginx:1.21
+          ports:
+            - containerPort: 8443
+              name: webhook-api
+          volumeMounts:
+            - name: webhook-tls
+              mountPath: "/etc/webhook/certs"
+              readOnly: true
+            - name: webhook-config
+              mountPath: /usr/share/nginx/html
+      volumes:
+        - name: webhook-tls
+          secret:
+            secretName: webhook-server-tls
+        - name: webhook-config
+          configMap:
+            name: webhook-server-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-server
+  namespace: webhook-demo
+spec:
+  ports:
+    - port: 443
+      targetPort: 8443
+  selector:
+    app: webhook-server
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: webhook-server-tls
+  namespace: webhook-demo
+spec:
+  dnsNames:
+    - webhook-server.webhook-demo.svc
+    - webhook-server.webhook-demo.svc.cluster.local
+  issuerRef:
+    kind: ClusterIssuer
+    name: selfsigned-issuer
+  secretName: webhook-server-tls
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webhook-server-config
+  namespace: webhook-demo
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Webhook Server</title>
+    </head>
+    <body>
+      <h1>Webhook Server</h1>
+      <p>This is a placeholder for a real webhook server implementation.</p>
+      <p>In a real scenario, you would implement a proper webhook server that:</p>
+      <ul>
+        <li>Validates resources according to custom rules</li>
+        <li>Mutates resources by adding or modifying fields</li>
+        <li>Returns appropriate responses to the Kubernetes API server</li>
+      </ul>
+    </body>
+    </html>

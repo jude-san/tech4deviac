@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thereject
+  labels:
+    app: thereject
+spec:
+  selector:
+    matchLabels:
+      app: thereject
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: thereject
+      labels:
+        app: thereject
+    spec:
+      containers:
+        - name: thereject
+          image: nginx:latest
+          imagePullPolicy:
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+          ports:
+            - containerPort: 80
+              name: thereject

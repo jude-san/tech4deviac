@@ -1,0 +1,133 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vault
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault
+  namespace: vault
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vault-server-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: vault
+    namespace: vault
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-config
+  namespace: vault
+data:
+  vault-config.json: |
+    {
+      "listener": {
+        "tcp": {
+          "address": "0.0.0.0:8200",
+          "tls_disable": 1
+        }
+      },
+      "storage": {
+        "file": {
+          "path": "/vault/data"
+        }
+      },
+      "ui": true
+    }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vault
+  namespace: vault
+  labels:
+    app: vault
+spec:
+  serviceName: vault
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault
+  template:
+    metadata:
+      labels:
+        app: vault
+    spec:
+      serviceAccountName: vault
+      containers:
+        - name: vault
+          image: hashicorp/vault:1.19.2
+          command:
+            - vault
+            - server
+            - -config=/vault/config/vault-config.json
+          ports:
+            - containerPort: 8200
+              name: vault-api
+            - containerPort: 8201
+              name: vault-cluster
+          env:
+            - name: VAULT_ADDR
+              value: "http://127.0.0.1:8200"
+            - name: POD_IP_ADDR
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: VAULT_CLUSTER_ADDR
+              value: "https://$(POD_IP_ADDR):8201"
+            - name: VAULT_API_ADDR
+              value: "http://$(POD_IP_ADDR):8200"
+          volumeMounts:
+            - name: vault-config
+              mountPath: /vault/config
+            - name: vault-data
+              mountPath: /vault/data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          securityContext:
+            capabilities:
+              add: ["IPC_LOCK"]
+      volumes:
+        - name: vault-config
+          configMap:
+            name: vault-config
+  volumeClaimTemplates:
+    - metadata:
+        name: vault-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  namespace: vault
+  labels:
+    app: vault
+spec:
+  ports:
+    - name: vault-api
+      port: 8200
+      targetPort: 8200
+    - name: vault-cluster
+      port: 8201
+      targetPort: 8201
+  selector:
+    app: vault
